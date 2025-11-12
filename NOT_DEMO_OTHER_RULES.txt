@@ -1,0 +1,35 @@
+# Custom rules for Suricata testing
+#
+#
+#*************************************************************
+# Custom rules to block password brute force attacks
+# block smtp connection if more then 3 unsuccessful Authentication attempts in 60 sec. testing filter vs threshold
+alert tcp $SMTP_SERVERS [25,465,587,2525] -> any any (msg:"filter SMTP AUTH LOGIN brute force attempt"; flow:from_server,established; content:"Authentication unsuccessful"; offset:54; nocase; detection_filter:track by_dst,count 3,seconds 60; classtype:suspicious-login; sid:1000001; rev:1; metadata:created_at 2020_11_27, updated_at 2020_11_27;)
+alert tcp $SMTP_SERVERS [25,465,587,2525] -> any any (msg:"threshold SMTP AUTH LOGON brute force attempt"; flow:from_server,established; content:"Authentication unsuccessful"; offset:54; nocase; threshold:type threshold, track by_dst, count 3, seconds 60; flowbits:set, smtpAU; classtype:suspicious-login; sid:1000002; rev:10; metadata:created_at 2010_09_23, updated_at 2022_07_10;)
+# test. alert on every auth fail
+#alert tcp $SMTP_SERVERS [25,465,587,2525] -> any any (msg:"threshold alert every SMTP AUTH LOGON brute force attempt"; flow:from_server,established; content:"Authentication unsuccessful"; offset:54; nocase; threshold:type threshold, track by_dst, count 1, seconds 60; classtype:suspicious-login; sid:1000003; rev:4; metadata:created_at 2010_09_23, updated_at 2021_06_15;)
+#
+# test. alert on dnsbl record reply from server
+alert udp any 53 -> $HOME_NET any (msg:"DNS Reply with 0.0.0.0 (DNSBL record requested)"; content:"|00 01 00 01|"; content:"|00 04 00 00 00 00|"; distance:4; within:6; classtype:bad-unknown; sid:1000005; rev:3;)
+# just test rule if IDS\IPS works. just ping and see
+alert icmp any any -> any any (msg: "TEST Rule: ICMP Packet found"; flow:to_server; classtype:test; sid:1000006; rev:3;)
+# test disabled rule for policies test
+#alert icmp any any -> any any (msg: "disabled ICMP TEST Rule"; classtype:test; sid:1000007; rev:2;)
+# test drop rule for policies test
+#drop icmp any any -> any any (msg: "drop ICMP TEST Rule"; classtype:test; sid:1000008; rev:1;)
+# test rules. try to catch client payload before auth error
+#alert tcp any [25,465,587,2525] -> any any (msg:"Threshold smtpAU bit. SMTP AUTH LOGON brute force attempt"; flow:from_server,established; content:"Authentication unsuccessful"; offset:54; nocase; flowbits:set, smtpAU; classtype:suspicious-login; sid:1000009; rev:11; metadata:created_at 2010_09_23, updated_at 2022_07_10;)
+#alert tcp any any -> any [25,465,587,2525] (msg:"Client SMTP connection"; flow:from_client,established; flowbits:isset, smtpAU; classtype:suspicious-login; sid:1000010; rev:1; metadata:created_at 2022_07_10, updated_at 2022_07_10;)
+alert tcp any any -> any [25,465,587,2525] (msg:"SMTP loopback in EHLO"; flow:from_client,established; content:"EHLO [127.0"; nocase; classtype:suspicious-login; sid:1000011; rev:1; metadata:created_at 2010_07_17, updated_at 2022_07_17;)
+# TEST flags&thresholds vs drops  issue (works for alerts only because of ...? RTFM? what "Rule actions drop (IPS mode) and reject are applied to each packet." means then)
+# need to dump traffic for more info
+# this one alerts as dropped but not drops (seems that just not effective for dropping since it drops only SYN packet with thresholding. good for alerts but not for dropping)
+#drop tcp $HOME_NET any -> any 445 (msg:"Port 445 with S 12 flags set"; flow:to_server; flags: S,12; threshold: type both, track by_src, count 70 , seconds 60; classtype:misc-activity; sid:1000012; rev:1; metadata:created_at 2023_02_07, updated_at 2023_02_07;)
+# this one drops as expected ("threshold matters". it allows first 60+ packets from src then drops)
+#drop tcp $HOME_NET any -> any 445 (msg:"Port 445 without S 12 flags"; flow:to_server; threshold: type both, track by_src, count 70 , seconds 60; classtype:misc-activity; sid:1000013; rev:1; metadata:created_at 2023_02_07, updated_at 2023_02_07;)
+# this one alerts as dropped but not drops (same as sid:1000012)
+#drop tcp $HOME_NET any -> any 445 (msg:"Port 445 with S only flag set"; flow:to_server; flags: S; threshold: type both, track by_src, count 70 , seconds 60; classtype:misc-activity; sid:1000014; rev:1; metadata:created_at 2023_02_07, updated_at 2023_02_07;)
+# this one drops as expected (drops first SYN packet. so connection not started)
+#drop tcp $HOME_NET any -> any 445 (msg:"Port 445 with S 12 flags and no thresholds"; flow:to_server; flags: S,12; classtype:misc-activity; sid:1000015; rev:1; metadata:created_at 2023_02_07, updated_at 2023_02_07;)
+#alert tcp $SMTP_SERVERS [25,465,587,2525] -> any any (msg:"count SMTP AUTH fails"; flow:from_server,established; content:"Authentication unsuccessful"; offset:54; nocase; flowint: smtploginfail, +, 1; noalert; classtype:suspicious-login; sid:1000016; rev:1; metadata:created_at 2010_09_23, updated_at 2022_07_10;)
+#alert tcp any any -> any [25,465,587,2525] (msg:"DROP smtp client after 2 logins fail"; flow:from_client,established; content:"|0D|"; content:"|0A|"; flowint: smtploginfail, >, 2; classtype:suspicious-login; sid:1000017; rev:1; metadata:created_at 2022_07_10, updated_at 2022_07_10;)

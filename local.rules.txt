@@ -1,0 +1,19 @@
+# 1. EICAR (File Signature)
+drop tcp any any -> $HOME_NET 8080 (msg:"LOCAL DEMO: EICAR test file detected (Raw)"; flow:to_server,established; content:"EICAR-STANDARD-ANTIVIRUS-TEST-FILE"; nocase; sid:1000001; rev:3;)
+
+# 2. MALWARE (C2 Beacon)
+drop http any any -> $HOME_NET 8080 (msg:"LOCAL DEMO: Malware C2 (Emotet) Detected"; flow:to_server; http.host; content:"c2-malware.ga"; sid:1000002; rev:3;)
+
+# 3. RANSOMWARE (WannaCry Killswitch)
+drop dns $HOME_NET any -> any 53 (msg:"LOCAL DEMO: Ransomware (WannaCry) Killswitch DNS Query"; dns.query; content:"iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea"; nocase; sid:1000003; rev:1;)
+
+# 4. ILLEGAL SSH (Fake Client Software)
+# ssh (port 5228=Google Talk, port 6697=IRC)
+alert tcp any any -> any 22 (msg:"LOCAL SSH connect"; flow:established,to_server; app-layer-protocol:ssh; sid:1000008; rev:1;)
+
+drop tcp any any -> any 22 (msg:"LOCAL not SSH but Port 22"; flow:established,to_server; app-layer-protocol:!ssh; sid:1000009; rev:1;)
+
+drop tcp any any -> any ![22,5228,6697] (msg:"LOCAL SSH but not Port 22"; flow:established,to_server; app-layer-protocol:ssh; sid:1000010; rev:1;)
+
+# 5. DDOS (SYN Flood)
+drop tcp any any -> $HOME_NET any (msg:"LOCAL DEMO: DDoS (SYN Flood) Detected"; flags:S; threshold:type threshold, track by_src, count 25, seconds 10; sid:1000005; rev:1;)

@@ -1,0 +1,48 @@
+SETUP:
+
+sudo nft flush ruleset
+sudo nft add table inet suricata
+sudo nft add chain inet suricata input { type filter hook input priority 0 \; }
+sudo nft add chain inet suricata output { type filter hook output priority 0 \; }
+sudo nft add rule inet suricata input queue num 0
+sudo nft add rule inet suricata output queue num 0
+# This starts a second SSH server on port 8080
+sudo /usr/sbin/sshd -p 8080
+
+START:
+
+sudo suricata -c /etc/suricata/suricata.yaml -q 0
+
+tests:
+
+SSH
+
+#Detect
+ssh fakeuser@192.168.1.130 
+
+# Send a simple text string to port 22 DROP
+echo "this is not ssh" | nc -w 1 192.168.1.130 22
+
+3.# Try to SSH to the server we started on port 8080 DROP
+ssh -p 8080 fakeuser@192.168.1.130
+
+
+DDOS
+
+sudo hping3 -S -c 100 -i u100 192.168.1.130
+
+EICAR:
+
+curl -v --data-binary @/home/kali/eicar.txt http://192.168.1.130:8080/upload
+
+MALWARE:
+
+# This curl command sends an HTTP request with the specific Host header your rule looks for
+curl -v -H "Host: c2-malware.ga" http://192.168.1.130:8080/
+
+
+RANSOMWARE:
+
+# This simulates the DNS request for the WannaCry killswitch domain
+nslookup iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com
+

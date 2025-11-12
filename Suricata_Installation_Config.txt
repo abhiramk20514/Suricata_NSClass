@@ -1,0 +1,83 @@
+Here are the command notes for installing and configuring Suricata.
+
+### 1. 🖥️ Initial Installation and Setup
+
+These commands add the official Suricata repository and install the software.
+
+* `sudo add-apt-repository ppa:oisf/suricata-stable`
+    * (Adds the stable PPA - Personal Package Archive - to get the latest version.)
+* `sudo apt update`
+    * (Refreshes your system's package list.)
+* `sudo apt install suricata -y`
+    * (Installs the Suricata package.)
+* `sudo systemctl enable suricata`
+    * (Sets Suricata to start automatically when the system boots.)
+* `sudo systemctl stop suricata`
+    * (Stops the service so you can configure it before its first run.)
+
+---
+
+### 2. 📝 Configuration
+
+This section involves editing the main configuration file, `suricata.yaml`.
+
+* `ip a`
+    * (Used to list your network interfaces and find the name of the one you want to monitor, e.g., `eth0` or `ens33`.)
+* `sudo nano /etc/suricata/suricata.yaml`
+    * (Opens the main configuration file in the `nano` text editor. You would edit lines here to set your `HOME_NET` (your local network) and the `interface` name.)
+
+---
+
+### 3. 🛡️ Rule Management
+
+These commands download and manage the threat detection rules.
+
+* `sudo suricata-update`
+    * (Downloads the latest community ruleset. This is the main command for updating rules.)
+* `sudo suricata-update update-sources`
+    * (Updates the list of available rule sources.)
+* `sudo suricata-update list-sources`
+    * (Shows all available rule sources you can enable.)
+* `sudo suricata-update enable-source <source-name>`
+    * (Example: `sudo suricata-update enable-source et/pro` to enable a specific ruleset.)
+
+---
+
+### 4. ⚙️ Testing and Running Suricata
+
+These commands test the configuration, run the service, and check the logs.
+
+* `sudo suricata -T -c /etc/suricata/suricata.yaml`
+    * (Tests the configuration file for any errors. This is a critical step.)
+* `sudo systemctl start suricata`
+    * (Starts the Suricata service after configuration.)
+* `sudo systemctl status suricata`
+    * (Checks if the service is running correctly.)
+* `sudo tail -f /var/log/suricata/eve.json`
+    * (Tails the main log file in real-time, showing all JSON-formatted alerts and events.)
+* `sudo tail -f /var/log/suricata/fast.log`
+    * (Tails the "fast log," which provides a simpler, one-line summary of alerts.)
+
+---
+
+### 5. 🎯 Running an Intrusion Test
+
+This command is used to trigger a test alert to ensure Suricata is working.
+
+* `curl http://testmynids.org/uid/index.html`
+    * (A safe command that simulates a request known to be malicious. You should see an alert for this in your Suricata logs.)
+
+---
+
+### 6. 🤝 Wazuh Integration 
+
+* `sudo systemctl stop suricata`
+    * (Stops the Suricata service temporarily.)
+* `sudo systemctl daemon-reload`
+    * (Reloads the `systemd` manager to recognize new services.)
+* `sudo systemctl enable wazuh-agent`
+    * (Enables the Wazuh agent to start on boot.)
+* `sudo systemctl start wazuh-agent`
+    * (Starts the Wazuh agent.)
+* `sudo systemctl status wazuh-agent`
+    * (Checks the status of the Wazuh agent to ensure it's running.)
