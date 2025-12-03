@@ -1,4 +1,4 @@
-# Suricata IDS/IPS – Class Demonstration & Assignment Submission
+# Suricata IDS/IPS
 
 This repository contains the files used for the practical demonstration of the Suricata Intrusion Detection & Prevention System (IDS/IPS) during class, as well as the assignment submission due on Friday and Tuesday.
 
